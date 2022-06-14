@@ -1,12 +1,32 @@
 const betterABI = require("../../artifacts/contracts/Better.sol/Better.json");
 const betterAddress = require("../../artifacts/contracts/Better.sol/Better.address.json");
-const hre = require("hardhat");
+const { ethers } = require("hardhat");
 
 let better = getContractInstance();
 
 async function storeEvent(event) {
   better = await better;
-  await better.addEvent(event.name, event.description, event.from, event.until, event.outcomes);
+  await better.addEvent(
+    event.name,
+    event.description,
+    event.dfAddress,
+    event.from,
+    event.until,
+    event.outcomes
+  );
+}
+
+async function setBid(eventID, position, bidAmount) {
+  better = await better;
+  try {
+    await better.placeBid(eventID, position, bidAmount);
+    console.log(
+      `Successfully placed your bid of ${bidAmount}$ on Event #${eventID} with bid position ${position}.`
+    );
+  } catch (err) {
+    console.log("Could not set your bid!");
+    console.log(err); // this should be logged to a log file
+  }
 }
 
 async function getCurrentEvents() {
@@ -18,9 +38,11 @@ async function getCurrentEvents() {
     events.push({
       name: event[0],
       description: event[1],
-      from: new Date(parseInt(event[2])),
-      until: new Date(parseInt(event[3])),
-      outcomes: event[4],
+      oracleAddress: event[2],
+      from: new Date(parseInt(event[3])),
+      until: new Date(parseInt(event[4])),
+      outcomes: event[5],
+      ID: i,
     });
   }
 
@@ -28,11 +50,17 @@ async function getCurrentEvents() {
 }
 
 async function getContractInstance() {
-  const signer = await hre.ethers.getSigner();
-  const better = new hre.ethers.Contract(betterAddress, betterABI.abi, signer);
+  const signer = await ethers.getSigner();
+  const better = new ethers.Contract(betterAddress, betterABI.abi, signer);
   return better;
 }
 
-module.exports = { storeEvent, getCurrentEvents };
+async function test() {
+  better = await better;
+  const address = await better.feeAccount();
+  console.log(address);
+  console.log(await ethers.provider.getBalance(address));
+}
 
-getCurrentEvents();
+//test();
+module.exports = { storeEvent, getCurrentEvents, setBid };

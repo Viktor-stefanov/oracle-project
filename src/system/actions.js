@@ -1,4 +1,5 @@
 const inquirer = require("inquirer");
+const { ethers } = require("hardhat");
 const { getCurrentEvents, storeEvent } = require("../util/contracts");
 
 async function takeCreateEventInput() {
@@ -16,8 +17,11 @@ async function takeCreateEventInput() {
     },
     {
       type: "input",
-      name: "datafeedAddress",
+      name: "dataFeedAddress",
       message: "Chainlink data feed oracle's address",
+      validate: (input) => {
+        return ethers.utils.isAddress(input);
+      },
     },
     {
       type: "datetime",
@@ -41,7 +45,7 @@ async function takeCreateEventInput() {
   return inquirer.prompt(questions).then(async (input) => {
     event.name = input.eventName;
     event.description = input.eventDescription;
-    event.dfAddress = input.datafeedAddress;
+    event.dfAddress = input.dataFeedAddress;
     event.from = new Date(input.startDate).getTime();
     event.until = new Date(input.endDate).getTime();
     event.outcomes = [];

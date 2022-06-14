@@ -8,7 +8,6 @@ module.exports = {
     localhost: {
       url: "http://127.0.0.1:8545",
     },
-    //hardhat: {},
     testnet: {
       url: "https://data-seed-prebsc-1-s2.binance.org:8545",
       chainId: 97,
@@ -17,6 +16,6 @@ module.exports = {
     },
   },
   solidity: {
-    version: "0.8.0",
+    compilers: [{ version: "0.8.7" }, { version: "0.6.6" }],
   },
 };

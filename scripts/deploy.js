@@ -16,9 +16,28 @@ function storeContractAddress(name, address) {
   );
 }
 
-async function main() {
-  const better = await deploy("Better");
-  storeContractAddress("Better", better.address);
+async function deployAndStore(name) {
+  const contract = await deploy(name);
+  storeContractAddress(name, contract.address);
 }
 
-main();
+async function deployMock(name) {
+  const DECIMALS = "18";
+  const INITIAL_PRICE = "200000000000000000000";
+  const Contract = await ethers.getContractFactory(name);
+  const contract = await Contract.deploy(DECIMALS, INITIAL_PRICE);
+  console.log(`Successfully deployed "${name}" contract. Address: ${contract.address}`);
+
+  return contract.address;
+}
+
+async function deployDF(name) {
+  const Contract = await ethers.getContractFactory(name);
+  const contract = await Contract.deploy();
+  storeContractAddress(name, contract.address);
+  console.log(`Successfully deployed "${name}" contract. Address: ${contract.address}`);
+}
+
+deployAndStore("Better");
+//const address = deployMock("MockV3Aggregator");
+deployDF("DataFeed"); // deploy only if there are changes
