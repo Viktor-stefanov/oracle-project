@@ -1,59 +1,51 @@
 const { ethers } = require("hardhat");
 const inquirer = require("inquirer");
-const { getCurrentEvents, setBid } = require("../util/contracts");
-const { printEvents, getEvent } = require("../util/events");
+const { getCurrentEvents, setBid, getEvent } = require("../util/contracts");
+const { printEvents } = require("../util/events");
 
-async function takeOutcomesInput(outputs) {
-  console.log("Possible outcomes: ", outputs);
+async function takeBidInput(event) {
   const questions = [
     {
-      type: "number",
-      name: "outcomeNumber",
-      message: "Choose outcome to bid on (number)",
-      validate: (input) => {
-        return !isNaN(parseInt(input)) && input <= outputs.length;
-      },
+      type: "list",
+      name: "bid",
+      message: "Choose outcome to bid on",
+      choices: [
+        `Price of ${event.assetName} will fluctuate ${event.priceGoal}% (or more) by ${event.closeDate}`,
+        `Price of ${event.assetName} will NOT fluctuate ${event.priceGoal}% (or more) by ${event.closeDate}`,
+      ],
     },
     {
       type: "number",
       name: "bidAmount",
-      message: "Bid amount (in USD)",
+      message: "Bid amount (in BNB)",
       validate: (input) => {
         return !isNaN(parseFloat(input));
       },
     },
   ];
   return await inquirer.prompt(questions).then((input) => {
-    return [input.outcomeNumber, input.bidAmount];
+    const position = input.bid.includes("will NOT") ? 0 : 1;
+    const bidAmount = ethers.utils.parseEther(input.bidAmount.toString());
+    return [position, bidAmount];
   });
 }
 
 async function takeBidEventInput() {
   const questions = [
     {
-      type: "input",
+      type: "number",
       name: "eventID",
       message: "Event's ID: (the number part only)",
       validate: (input) => {
         return !isNaN(parseInt(input));
       },
     },
-    {
-      type: "input",
-      name: "eventName",
-      message: "Event's name",
-    },
   ];
   await inquirer.prompt(questions).then(async (input) => {
-    const event = await getEvent(parseInt(input.eventID), input.eventName);
+    let event = await getEvent(input.eventID);
     if (event) {
-      const outcomes = event.outcomes.map((val, i) => {
-        const entry = {};
-        entry[i + 1] = val;
-        return entry;
-      });
-      const [outcomeNumber, bidAmount] = await takeOutcomesInput(outcomes);
-      await setBid(event.ID, outcomeNumber, bidAmount);
+      const [position, bidAmount] = await takeBidInput(event);
+      await setBid(event.ID, position, bidAmount);
     }
   });
 }

@@ -6,23 +6,14 @@ function printEvents(events) {
     console.log(`Event ID: #${event.ID}`);
     console.log("Name:".padEnd(20), event.name);
     console.log("Description:".padEnd(20), event.description);
-    console.log("Valid until:".padEnd(20), event.until);
-    console.log("Possible outcomes:".padEnd(20), event.outcomes.join("\n" + " ".repeat(21)));
-    console.log("Oracle address:".padEnd(20), event.oracleAddress);
+    console.log("Asset name:".padEnd(20), event.assetName);
+    console.log("Price change goal:".padEnd(20), event.priceGoal);
+    console.log("Bidding closed from:".padEnd(20), event.closeBidsDate);
+    console.log("Event will finish:".padEnd(20), event.closeDate);
+    console.log("Oracle address:".padEnd(20), event.oracle);
     console.log("-".repeat(50));
     console.log("\n");
   }
 }
 
-async function getEvent(ID, name) {
-  const events = await getCurrentEvents();
-  for (let event of events) {
-    if (event.ID === ID && event.name.toLowerCase() === name.toLowerCase()) {
-      return event;
-    }
-  }
-
-  return null;
-}
-
-module.exports = { printEvents, getEvent };
+module.exports = { printEvents};

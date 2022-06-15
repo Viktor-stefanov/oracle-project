@@ -39,5 +39,5 @@ async function deployDF(name) {
 }
 
 deployAndStore("Better");
-//const address = deployMock("MockV3Aggregator");
+const address = deployMock("MockV3Aggregator");
 deployDF("DataFeed"); // deploy only if there are changes

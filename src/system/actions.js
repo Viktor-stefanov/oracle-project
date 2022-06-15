@@ -1,91 +1,148 @@
-const inquirer = require("inquirer");
 const { ethers } = require("hardhat");
-const { getCurrentEvents, storeEvent } = require("../util/contracts");
+const inquirer = require("inquirer");
+const { createEvent, closeEvent, getEvent } = require("../util/contracts");
+
+//async function takePriceChangeInput() {
+//  const questions = [
+//    {
+//      type: "input",
+//      name: "eventGoal",
+//      message:
+//        "Asset price change in percent (e.g. -2% means 'reach price goal of -2% from current price or lower')",
+//      validate: (input) => {
+//        return input.slice(-1) === "%" && !isNaN(parseInt(input.slice(0, -1)));
+//      },
+//    },
+//    {
+//      type: "datetime",
+//      format: ["DD", " ", "HH", ":", "mm"],
+//      name: "closeDate",
+//      message: "Close event date",
+//    },
+//    {
+//      type: "input",
+//      name: "oracle",
+//      message: "Asset price's oracle / data feed address",
+//    },
+//  ];
+
+//  return await inquirer.prompt(questions).then((input) => {
+//    return [input.oracle, input.closeDate, input.eventGoal];
+//  });
+//}
+
+//async function takeCreateEventInput() {
+//  const questions = [
+//    {
+//      type: "input",
+//      name: "eventName",
+//      message:
+//        "Event's name (e.g. BTC price change, Manchester v Liverpool, Tuesday Weather Forecast...)",
+//    },
+//    {
+//      type: "input",
+//      name: "eventDescription",
+//      message: "Event's description",
+//    },
+//    {
+//      type: "list",
+//      name: "outcomeType",
+//      choices: ["Asset Price Change", "Sports Game Outcome"],
+//      message: "Select the type of bet",
+//    },
+//  ];
+
+//  return inquirer.prompt(questions).then(async (input) => {
+//    let event = {};
+//    event.name = input.name;
+//    event.description = input.description;
+//    event.outcomeType = "priceChange";
+//    if (input.outcomeType === "Asset Price Change") {
+//      const [oracle, closeDate, goal] = await takePriceChangeInput();
+//      event.oracle = oracle;
+//      event.closeDate = closeDate;
+//      event.goal = goal;
+//    } else if (input.outcomeType === "Sports Game Outcome") {
+//      null;
+//    }
+
+//    await storeEvent(event);
+//  });
+//}
 
 async function takeCreateEventInput() {
-  const event = {};
   const questions = [
     {
       type: "input",
-      name: "eventName",
-      message: "Event's name:",
+      name: "name",
+      message: "Name of event",
     },
     {
       type: "input",
-      name: "eventDescription",
-      message: "Event's description (detailed)",
+      name: "description",
+      message: "Description of event",
     },
     {
       type: "input",
-      name: "dataFeedAddress",
-      message: "Chainlink data feed oracle's address",
+      name: "assetName",
+      message: "Name of asset (BTC, S&P500...)",
+    },
+    {
+      type: "input",
+      name: "priceGoal",
+      message: "Expected change in price (in '%' e.g. +5%, -3%, -10%...)",
+      validate: (input) => {
+        return input.slice(-1) === "%" && !isNaN(parseInt(input.slice(1, -1)));
+      },
+    },
+    {
+      type: "input",
+      name: "oracle",
+      message: "Chainlink oracle's address",
       validate: (input) => {
         return ethers.utils.isAddress(input);
       },
     },
     {
       type: "datetime",
-      name: "startDate",
-      message: "Event will be valid from",
-      format: ["Y", "/", "MM", "/", "DD", " ", "HH", ":", "mm", ":", "ss"],
+      name: "closeBidsDate",
+      format: ["HH", ":", "mm"],
+      message: "Prohibit bids after",
     },
     {
       type: "datetime",
-      name: "endDate",
-      message: "Event will be closed at",
-      format: ["Y", "/", "MM", "/", "DD", " ", "HH", ":", "mm", ":", "ss"],
-    },
-    {
-      type: "number",
-      name: "outcomes",
-      message: "Number of possible outcomes",
+      format: ["DD", "/", "MM", " ", "HH", ":", "mm"],
+      name: "closeDate",
+      message: "Close date of event",
     },
   ];
-
-  return inquirer.prompt(questions).then(async (input) => {
-    event.name = input.eventName;
-    event.description = input.eventDescription;
-    event.dfAddress = input.dataFeedAddress;
-    event.from = new Date(input.startDate).getTime();
-    event.until = new Date(input.endDate).getTime();
-    event.outcomes = [];
-    for (let i = 1; i < input.outcomes + 1; i++) {
-      event.outcomes.push(await takeOutcomeInput(i));
-    }
-
-    return event;
-  });
-}
-
-async function takeOutcomeInput(num) {
-  const question = [
-    {
-      type: "input",
-      name: "outcome",
-      message: `Outcome #${num} description`,
-    },
-  ];
-
-  return inquirer.prompt(question).then((input) => {
-    return input.outcome;
+  return await inquirer.prompt(questions).then(async (input) => {
+    return {
+      name: input.name,
+      description: input.description,
+      assetName: input.assetName,
+      closeDate: new Date(input.closeDate).getTime(),
+      closeBidsDate: new Date(input.closeBidsDate).getTime(),
+      oracle: input.oracle,
+      priceGoal: parseInt(input.priceGoal.slice(0, -1)),
+    };
   });
 }
 
 async function takeCloseEventInput() {
   const question = [
     {
-      type: "input",
-      name: "eventName",
-      message: "Name of event to close:",
+      type: "number",
+      name: "eventID",
+      message: "Event's ID (number part only):",
+      validate: (input) => {
+        return !isNaN(parseInt(input));
+      },
     },
   ];
   await inquirer.prompt(question).then(async (input) => {
-    const events = getCurrentEvents();
-    for (const event of events) {
-      if (event.name === input.eventName) {
-        // delete event from events AND call distribute smart contract
-      }
-    }
+    const event = await getEvent(input.eventID);
+    if (event) await closeEvent(event.ID);
   });
 }
 
@@ -103,7 +160,7 @@ async function takeActionInput() {
   inquirer.prompt(question).then(async (input) => {
     if (input.action === "Create event") {
       const event = await takeCreateEventInput();
-      await storeEvent(event);
+      await createEvent(event);
     } else if (input.action === "Close event") {
       await takeCloseEventInput();
     } else if (input.action === "Quit") return;
