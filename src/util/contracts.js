@@ -1,7 +1,8 @@
-const betterABI = require("../../artifacts/contracts/Better.sol/Better.json");
+const betterMetadata = require("../../artifacts/contracts/Better.sol/Better.json");
 const betterAddress = require("../../artifacts/contracts/Better.sol/Better.address.json");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
+const { getWallet } = require("../util/config");
 
 let better = getContractInstance();
 
@@ -100,8 +101,8 @@ async function getEvent(eventID) {
 }
 
 async function getContractInstance() {
-  const signer = await ethers.getSigner();
-  const better = new ethers.Contract(betterAddress, betterABI.abi, signer);
+  const wallet = getWallet();
+  const better = new ethers.Contract(betterAddress, betterMetadata.abi, wallet);
   return better;
 }
 
@@ -117,6 +118,5 @@ async function test() {
   better = await better;
 }
 
-test();
-
+// test();
 module.exports = { createEvent, getCurrentEvents, setBid, closeEvent, getEvent };

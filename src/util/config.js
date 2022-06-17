@@ -17,6 +17,26 @@ function writeKeypair(pub, priv) {
   fs.writeFileSync(configPath, JSON.stringify(keypair));
 }
 
+function saveCredentials(pubKey, wallet) {
+  const jsonConfig = getJsonConfig();
+  const walletJSON = JSON.stringify(wallet);
+  if (!jsonConfig["wallet"]) {
+    jsonConfig["wallet"] = walletJSON;
+  }
+  if (!jsonConfig["pubKey"]) {
+    jsonConfig["pubKey"] = pubKey;
+  }
+  fs.writeFileSync(configPath, JSON.stringify(jsonConfig));
+}
+
+function getWallet() {
+  const jsonConfig = getJsonConfig();
+  if (jsonConfig["wallet"]) {
+    return JSON.parse(jsonConfig["wallet"]);
+  }
+  return null;
+}
+
 const configPath = path.join(__dirname, "..", "..", "config.json");
 
-module.exports = { getJsonConfig, writeKeypair };
+module.exports = { getJsonConfig, writeKeypair, saveCredentials, getWallet };
