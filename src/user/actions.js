@@ -1,7 +1,72 @@
 const { ethers } = require("hardhat");
 const inquirer = require("inquirer");
-const { getCurrentEvents, setBid, getEvent } = require("../util/contracts");
+const Datepicker = require("inquirer-datepicker");
+const {
+  getCurrentEvents,
+  setBid,
+  getEvent,
+  createEvent,
+} = require("../util/contracts");
 const { printEvents } = require("../util/events");
+
+async function takeCreateEventInput() {
+  const questions = [
+    {
+      type: "input",
+      name: "name",
+      message: "Name of event",
+    },
+    {
+      type: "input",
+      name: "description",
+      message: "Description of event",
+    },
+    {
+      type: "input",
+      name: "assetName",
+      message: "Name of asset (BTC, S&P500...)",
+    },
+    {
+      type: "input",
+      name: "priceGoal",
+      message: "Expected change in price (in '%' e.g. +5%, -3%, -10%...)",
+      validate: (input) => {
+        return input.slice(-1) === "%" && !isNaN(parseInt(input.slice(1, -1)));
+      },
+    },
+    {
+      type: "input",
+      name: "oracle",
+      message: "Chainlink oracle's address",
+      validate: (input) => {
+        return ethers.utils.isAddress(input);
+      },
+    },
+    {
+      type: "datepicker",
+      name: "closeBidsDate",
+      format: ["HH", ":", "mm"],
+      message: "Prohibit bids after",
+    },
+    {
+      type: "datepicker",
+      format: ["DD", "/", "MM", " ", "HH", ":", "mm"],
+      name: "closeDate",
+      message: "Close date of event",
+    },
+  ];
+  return await inquirer.prompt(questions).then((input) => {
+    return {
+      name: input.name,
+      description: input.description,
+      assetName: input.assetName,
+      closeDate: new Date(input.closeDate).getTime(),
+      closeBidsDate: new Date(input.closeBidsDate).getTime(),
+      oracle: input.oracle,
+      priceGoal: parseInt(input.priceGoal),
+    };
+  });
+}
 
 async function takeBidInput(event) {
   const questions = [
@@ -50,14 +115,14 @@ async function takeBidEventInput() {
   });
 }
 
-async function takeActionInput() {
+async function userActions() {
   console.log("What do you wish to do?");
   const question = [
     {
       type: "list",
       name: "action",
       message: "What do you wish to do?",
-      choices: ["List events", "Bid on event", "Quit"],
+      choices: ["Create event", "List events", "Bid on event", "Quit"],
     },
   ];
 
@@ -67,12 +132,16 @@ async function takeActionInput() {
       printEvents(events);
     } else if (input.action === "Bid on event") {
       await takeBidEventInput();
+    } else if (input.action === "Create event") {
+      const event = await takeCreateEventInput();
+      await createEvent(event);
     } else if (input.action === "Quit") {
       return;
     }
-
-    takeActionInput();
+    userActions();
   });
 }
 
-takeActionInput();
+inquirer.registerPrompt("datepicker", Datepicker);
+userActions();
+module.exports = { userActions };

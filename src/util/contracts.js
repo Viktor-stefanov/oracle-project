@@ -2,12 +2,15 @@ const betterMetadata = require("../../artifacts/contracts/Better.sol/Better.json
 const betterAddress = require("../../artifacts/contracts/Better.sol/Better.address.json");
 const { ethers } = require("hardhat");
 const { BigNumber } = require("ethers");
-const { getWallet } = require("../util/config");
 
-let better = getContractInstance();
+let better;
+getContractInstance().then((c) => {
+  better = c;
+  //test();
+});
 
 async function createEvent(event) {
-  better = await better;
+  console.log(better);
   await better.addEvent(
     event.name,
     event.description,
@@ -15,12 +18,12 @@ async function createEvent(event) {
     event.closeDate,
     event.closeBidsDate,
     event.priceGoal,
-    event.oracle
+    event.oracle,
+    { gasLimit: 10000000 }
   );
 }
 
 async function setBid(eventID, position, bidAmount) {
-  better = await better;
   const signers = await ethers.getSigners();
   const signer = signers[signers.length - 3];
   better = await better.connect(signer);
@@ -28,7 +31,9 @@ async function setBid(eventID, position, bidAmount) {
   try {
     await better.placeBid(eventID, position, { value: bidAmount });
     bidAmount = ethers.utils.formatEther(bidAmount);
-    console.log(`Successfully placed your bid of ${bidAmount} BNB on Event #${eventID}.`);
+    console.log(
+      `Successfully placed your bid of ${bidAmount} BNB on Event #${eventID}.`
+    );
   } catch (err) {
     console.log("Could not set your bid!");
     console.log(err); // this should be logged to a log file
@@ -36,7 +41,6 @@ async function setBid(eventID, position, bidAmount) {
 }
 
 async function closeEvent(eventID) {
-  better = await better;
   const event = await better.getEvent(eventID),
     endPrice = await better.getEventOutcome(event.name),
     changePercent = ((endPrice - event.startPrice) / event.startPrice) * 100;
@@ -55,7 +59,8 @@ async function closeEvent(eventID) {
     } else losersBetAmount = losersBetAmount.add(bet.amount);
   });
   for (let winner of winners) {
-    let coefficient = Number(winner.amount.mul(100).div(winnersBetAmount)) / 100;
+    let coefficient =
+      Number(winner.amount.mul(100).div(winnersBetAmount)) / 100;
     let wonAmount = losersBetAmount.mul(coefficient * 100).div(100);
     await better.payWinner(winner.account, {
       value: wonAmount.toString(),
@@ -67,7 +72,6 @@ async function closeEvent(eventID) {
 
 async function getCurrentEvents() {
   const events = [];
-  better = await better;
   const contractEvents = await better.getEvents();
   for (const event of contractEvents) {
     events.push({
@@ -86,7 +90,6 @@ async function getCurrentEvents() {
 }
 
 async function getEvent(eventID) {
-  better = await better;
   const event = await better.getEvent(eventID);
   return {
     name: event[0],
@@ -101,22 +104,19 @@ async function getEvent(eventID) {
 }
 
 async function getContractInstance() {
-  const wallet = getWallet();
-  const better = new ethers.Contract(betterAddress, betterMetadata.abi, wallet);
+  const signer = await ethers.getSigner();
+  const better = new ethers.Contract(betterAddress, betterMetadata.abi, signer);
   return better;
 }
 
 async function test() {
-  const signers = await ethers.getSigners();
-  console.log(
-    ethers.utils.formatEther(await (await signers[signers.length - 2].getBalance()).toString())
-  );
-  console.log(
-    ethers.utils.formatEther(await (await signers[signers.length - 3].getBalance()).toString())
-  );
-  console.log(ethers.utils.formatEther(await (await signers[0].getBalance()).toString()));
-  better = await better;
+  await better.getEvent(1);
 }
 
-// test();
-module.exports = { createEvent, getCurrentEvents, setBid, closeEvent, getEvent };
+module.exports = {
+  createEvent,
+  getCurrentEvents,
+  setBid,
+  closeEvent,
+  getEvent,
+};

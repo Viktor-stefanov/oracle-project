@@ -1,7 +1,7 @@
 const inquirer = require("inquirer");
 const { getJsonConfig } = require("../util/config.js");
 
-function getInput() {
+async function getInput() {
   const question = [
     {
       type: "input",
@@ -10,7 +10,7 @@ function getInput() {
     },
   ];
 
-  inquirer.prompt(question).then((input) => {
+  await inquirer.prompt(question).then((input) => {
     const userPrivKey = input.masterPrivKey;
     const masterPrivKey = getJsonConfig()["MASTER_PASS"];
     if (userPrivKey === masterPrivKey) return;
@@ -19,5 +19,9 @@ function getInput() {
   });
 }
 
-console.log("Login as a system administrator.");
-getInput();
+async function registerSystem() {
+  console.log("Login as a system administrator.");
+  await getInput();
+}
+
+module.exports = { registerSystem };

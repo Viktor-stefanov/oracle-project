@@ -2,16 +2,16 @@ const inquirer = require("inquirer");
 const { ethers } = require("hardhat");
 const { saveCredentials } = require("../util/config.js");
 
-function loginUser() {
+async function registerUser() {
   let wallet;
   const questions = [
     {
       type: "input",
       name: "pubKey",
       message: "Enter your public key",
-      validate: (pubKey) => {
-        return ethers.utils.isAddress(pubKey);
-      },
+      //validate: (pubKey) => {
+      //  return ethers.utils.isAddress(pubKey);
+      //},
     },
     {
       type: "input",
@@ -28,9 +28,10 @@ function loginUser() {
       },
     },
   ];
-  inquirer.prompt(questions).then((input) => {
-    saveCredentials(input.pubKey, wallet);
+  await inquirer.prompt(questions).then(async (input) => {
+    saveCredentials(input.pubKey, input.privKey);
   });
 }
 
-loginUser();
+registerUser();
+module.exports = { registerUser };
